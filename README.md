@@ -1,1 +1,1 @@
-# snowflake-posit-quickstart-python
+# Analyze Data with Python using Posit Workbench and Snowflake

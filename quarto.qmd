@@ -1,0 +1,113 @@
+---
+title: "Heart Failure Survival"
+format: html
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+This report uses the [Heart Failure Clinical Records](https://archive.ics.uci.edu/dataset/519/heart+failure+clinical+records) dataset to compare clinical metrics across patient groups, focusing on younger patients' survival outcomes and diabetes status.
+
+## Connect to Data
+
+We start by connecting to the `HEART_FAILURE` database in Snowflake, standardizing column names, and filtering to our age range of interest.
+
+```{python}
+import ibis
+import pandas as pd
+from plotnine import ggplot, aes, geom_boxplot, labs, theme
+from great_tables import GT
+
+# Connect to Snowflake with Ibis
+con = ibis.snowflake.connect(
+  warehouse="DEFAULT_WH",  
+  database="HEART_FAILURE",  
+  catalog="PUBLIC",
+  connection_name="workbench"
+)
+
+# Connect to the table and filter the data
+heart_failure = con.table("HEART_FAILURE")
+
+# Standardize column names and filter the data
+heart_failure_filtered = (
+    heart_failure
+    .filter(heart_failure.AGE < 50)  # Filter to age < 50
+    .rename(
+        age="AGE",
+        diabetes="DIABETES",
+        serum_sodium="SERUM_SODIUM",
+        serum_creatinine="SERUM_CREATININE",
+        sex="SEX",
+        death_event="DEATH_EVENT"
+    )
+    .select(["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"])
+)
+```
+
+## Age Distribution by Diabetes Status and Survival
+
+The box plot below illustrates the distribution of ages among heart failure patients, grouped by diabetes status and survival outcome (0 = Survived, 1 = Died).
+
+```{python}
+heart_failure_df = heart_failure_filtered.execute()
+
+# Convert columns to strings for plot
+heart_failure_df['death_event'] = heart_failure_df['death_event'].astype(str)
+heart_failure_df['diabetes'] = heart_failure_df['diabetes'].astype(str)
+
+(
+    ggplot(heart_failure_df, aes(x='death_event', y='serum_sodium', color='diabetes')) +
+    geom_boxplot() +
+    labs(
+        title="Serum Sodium Levels by Diabetes Status and Survival Outcome",
+        x="Survival Outcome (0 = Survived, 1 = Died)",
+        y="Serum Sodium (mEq/L)",
+        color="Diabetes"
+    ) +
+    theme(legend_position='bottom')
+)
+```
+
+## Compare Metrics in a Table
+
+In the table below, we compare clinical metrics across patient groups categorized by survival outcome ("Survived" or "Died") and diabetes status ("Yes" or "No"). This breakdown provides insights into how these clinical characteristics differ based on patient health conditions.
+
+```{python}
+# Summarize clinical metrics for table display
+comparison = (
+    heart_failure_df.groupby(['death_event', 'diabetes']).agg(
+        median_age=('age', 'median'),
+        median_serum_creatinine=('serum_creatinine', 'median'),
+        median_serum_sodium=('serum_sodium', 'median')
+    ).reset_index()
+)
+
+# Re-label the categorical columns
+comparison['death_event'] = comparison['death_event'].replace({'1': 'Died', '0': 'Survived'})
+comparison['diabetes'] = comparison['diabetes'].replace({'1': 'Yes', '0': 'No'})
+
+comparison = comparison.rename(columns={
+    'death_event': 'Survival Outcome',
+    'diabetes': 'Diabetes Status',
+    'median_age': 'Median Age',
+    'median_serum_creatinine': 'Median Serum Creatinine (mg/dL)',
+    'median_serum_sodium': 'Median Serum Sodium (mEq/L)'
+})
+
+(
+    GT(comparison)
+    .tab_header(title="Clinical Metrics by Survival Outcome and Diabetes Status")
+    .fmt_number(
+        columns=["Median Age", "Median Serum Creatinine (mg/dL)", "Median Serum Sodium (mEq/L)"],
+        decimals=1
+    )
+    .data_color(
+        columns=["Median Serum Creatinine (mg/dL)", "Median Serum Sodium (mEq/L)"],
+        palette=["white", "blue"]
+    )
+)
+```

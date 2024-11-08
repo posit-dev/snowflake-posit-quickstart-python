@@ -44,7 +44,9 @@ heart_failure_filtered = (
         sex="SEX",
         death_event="DEATH_EVENT"
     )
-    .select(["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"])
+    .select(
+      ["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"]
+    )
 )
 ```
 

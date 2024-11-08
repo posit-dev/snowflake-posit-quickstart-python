@@ -16,7 +16,7 @@ import faicons as fa
 con = ibis.snowflake.connect(
     warehouse="DEFAULT_WH",
     database="HEART_FAILURE",
-    catalog="PUBLIC",
+    schema="PUBLIC",
     connection_name="workbench",
 )
 

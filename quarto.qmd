@@ -25,7 +25,7 @@ from great_tables import GT
 con = ibis.snowflake.connect(
   warehouse="DEFAULT_WH",  
   database="HEART_FAILURE",  
-  catalog="PUBLIC",
+  schema="PUBLIC",
   connection_name="workbench"
 )
 
@@ -44,7 +44,9 @@ heart_failure_filtered = (
         sex="SEX",
         death_event="DEATH_EVENT"
     )
-    .select(["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"])
+    .select(
+      ["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"]
+    )
 )
 ```
 

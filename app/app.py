@@ -52,7 +52,10 @@ metric_choices = {
 }
 
 ui.page_opts(
-    title="Heart Failure Data Dashboard",
+    title=ui.tags.div(
+        ui.tags.img(src="heart.png", height="30px", style="margin-right: 10px;"),
+        "Heart Failure Data Dashboard"
+    ),
     fillable=True,
     theme=ui.Theme(preset="sandstone"),
 )

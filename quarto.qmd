@@ -25,7 +25,7 @@ from great_tables import GT
 con = ibis.snowflake.connect(
   warehouse="DEFAULT_WH",  
   database="HEART_FAILURE",  
-  catalog="PUBLIC",
+  schema="PUBLIC",
   connection_name="workbench"
 )
 
@@ -34,17 +34,20 @@ heart_failure = con.table("HEART_FAILURE")
 
 # Standardize column names and filter the data
 heart_failure_filtered = (
-    heart_failure
-    .filter(heart_failure.AGE < 50)  # Filter to age < 50
+    heart_failure.filter(heart_failure.AGE < 50)  # Filter to age < 50
     .rename(
-        age="AGE",
-        diabetes="DIABETES",
-        serum_sodium="SERUM_SODIUM",
-        serum_creatinine="SERUM_CREATININE",
-        sex="SEX",
-        death_event="DEATH_EVENT"
+        {
+            "age": "AGE",
+            "diabetes": "DIABETES",
+            "serum_sodium": "SERUM_SODIUM",
+            "serum_creatinine": "SERUM_CREATININE",
+            "sex": "SEX",
+            "death_event": "DEATH_EVENT",
+        }
     )
-    .select(["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"])
+    .select(
+        ["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"]
+    )
 )
 ```
 
@@ -79,27 +82,31 @@ In the table below, we compare clinical metrics across patient groups categorize
 ```{python}
 # Summarize clinical metrics for table display
 comparison = (
-    heart_failure_df.groupby(['death_event', 'diabetes']).agg(
-        median_age=('age', 'median'),
-        median_serum_creatinine=('serum_creatinine', 'median'),
-        median_serum_sodium=('serum_sodium', 'median')
-    ).reset_index()
+    heart_failure_filtered
+    .group_by(["death_event", "diabetes"])
+    .aggregate(
+        median_age=heart_failure_filtered["age"].median(),
+        median_serum_creatinine=heart_failure_filtered["serum_creatinine"].median(),
+        median_serum_sodium=heart_failure_filtered["serum_sodium"].median()
+    )
+    .mutate(
+        death_event=ibis.ifelse(heart_failure_filtered["death_event"] == 1, "Died", "Survived"),
+        diabetes=ibis.ifelse(heart_failure_filtered["diabetes"] == 1, "Yes", "No"),
+        median_serum_creatinine=heart_failure_filtered["serum_creatinine"].median().cast("float64")
+    )
+    .rename(
+        {
+            'Survival Outcome': 'death_event',
+            'Diabetes Status': 'diabetes',
+            'Median Age': 'median_age',
+            'Median Serum Creatinine (mg/dL)': 'median_serum_creatinine',
+            'Median Serum Sodium (mEq/L)': 'median_serum_sodium'
+        }
+    )
 )
 
-# Re-label the categorical columns
-comparison['death_event'] = comparison['death_event'].replace({'1': 'Died', '0': 'Survived'})
-comparison['diabetes'] = comparison['diabetes'].replace({'1': 'Yes', '0': 'No'})
-
-comparison = comparison.rename(columns={
-    'death_event': 'Survival Outcome',
-    'diabetes': 'Diabetes Status',
-    'median_age': 'Median Age',
-    'median_serum_creatinine': 'Median Serum Creatinine (mg/dL)',
-    'median_serum_sodium': 'Median Serum Sodium (mEq/L)'
-})
-
 (
-    GT(comparison)
+    GT(comparison.execute())
     .tab_header(title="Clinical Metrics by Survival Outcome and Diabetes Status")
     .fmt_number(
         columns=["Median Age", "Median Serum Creatinine (mg/dL)", "Median Serum Sodium (mEq/L)"],

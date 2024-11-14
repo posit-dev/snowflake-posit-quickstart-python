@@ -56,14 +56,16 @@ heart_failure_filtered = (
 The box plot below illustrates the distribution of ages among heart failure patients, grouped by diabetes status and survival outcome (0 = Survived, 1 = Died).
 
 ```{python}
-heart_failure_df = heart_failure_filtered.execute()
-
-# Convert columns to strings for plot
-heart_failure_df['death_event'] = heart_failure_df['death_event'].astype(str)
-heart_failure_df['diabetes'] = heart_failure_df['diabetes'].astype(str)
+heart_failure_plot = (
+    heart_failure_filtered
+    .mutate(
+        death_event=heart_failure_filtered["death_event"].cast("string"),
+        diabetes=heart_failure_filtered["diabetes"].cast("string")
+    )
+)
 
 (
-    ggplot(heart_failure_df, aes(x='death_event', y='serum_sodium', color='diabetes')) +
+    ggplot(heart_failure_plot, aes(x='death_event', y='serum_sodium', color='diabetes')) +
     geom_boxplot() +
     labs(
         title="Serum Sodium Levels by Diabetes Status and Survival Outcome",

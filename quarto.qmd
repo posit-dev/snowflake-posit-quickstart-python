@@ -65,7 +65,7 @@ heart_failure_plot = (
 )
 
 (
-    ggplot(heart_failure_plot, aes(x='death_event', y='serum_sodium', color='diabetes')) +
+    ggplot(heart_failure_plot, aes(x="death_event", y="serum_sodium", color="diabetes")) +
     geom_boxplot() +
     labs(
         title="Serum Sodium Levels by Diabetes Status and Survival Outcome",
@@ -73,7 +73,7 @@ heart_failure_plot = (
         y="Serum Sodium (mEq/L)",
         color="Diabetes"
     ) +
-    theme(legend_position='bottom')
+    theme(legend_position="bottom")
 )
 ```
 
@@ -98,11 +98,11 @@ comparison = (
     )
     .rename(
         {
-            'Survival Outcome': 'death_event',
-            'Diabetes Status': 'diabetes',
-            'Median Age': 'median_age',
-            'Median Serum Creatinine (mg/dL)': 'median_serum_creatinine',
-            'Median Serum Sodium (mEq/L)': 'median_serum_sodium'
+            "Survival Outcome": "death_event",
+            "Diabetes Status": "diabetes",
+            "Median Age": "median_age",
+            "Median Serum Creatinine (mg/dL)": "median_serum_creatinine",
+            "Median Serum Sodium (mEq/L)": "median_serum_sodium"
         }
     )
 )

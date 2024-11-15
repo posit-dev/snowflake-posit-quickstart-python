@@ -22,27 +22,30 @@ con = ibis.snowflake.connect(
 
 # Connect to the table and filter the data
 heart_failure = con.table("HEART_FAILURE")
-heart_failure_df = heart_failure.execute()
 
 comparison = (
-    heart_failure_df.groupby(["DEATH_EVENT", "DIABETES"])
-    .agg(
-        median_age=("AGE", "median"),
-        median_serum_creatinine=("SERUM_CREATININE", "median"),
-        median_serum_sodium=("SERUM_SODIUM", "median"),
+    heart_failure
+    .group_by(["DEATH_EVENT", "DIABETES"])
+    .aggregate(
+        median_age=heart_failure["AGE"].median(),
+        median_serum_creatinine=heart_failure["SERUM_CREATININE"].median(),
+        median_serum_sodium=heart_failure["SERUM_SODIUM"].median()
     )
-    .replace(
-        {"DEATH_EVENT": {1: "Died", 0: "Survived"}, "DIABETES": {1: "Yes", 0: "No"}}
+    .mutate(
+        DEATH_EVENT=ibis.ifelse(heart_failure["DEATH_EVENT"] == 1, "Died", "Survived"),
+        DIABETES=ibis.ifelse(heart_failure["DIABETES"] == 1, "Yes", "No"),
+        median_serum_creatinine=heart_failure["SERUM_CREATININE"].median().cast("float64")
     )
     .rename(
-        columns={
-            "DEATH_EVENT": "Outcome",
-            "DIABETES": "Diabetes",
-            "median_age": "Median Age",
-            "median_serum_creatinine": "Median Serum Creatinine",
-            "median_serum_sodium": "Median Serum Sodium",
+        {
+            "Survival": "DEATH_EVENT",
+            "Diabetes Status": "DIABETES",
+            "Median Age": "median_age",
+            "Median Creatinine (mg/dL)": "median_serum_creatinine",
+            "Median Sodium (mEq/L)": "median_serum_sodium"
         }
     )
+    .order_by(ibis.desc("Survival"))
 )
 
 metric_choices = {
@@ -69,18 +72,21 @@ with ui.layout_columns():
     with ui.card():
         ui.card_header("Clinical Metric Distribution by Survival")
 
-        heart_failure_df["DEATH_EVENT_STR"] = heart_failure_df["DEATH_EVENT"].astype(
-            str
+        heart_failure_plot = (
+            heart_failure
+            .mutate(
+                DEATH_EVENT=heart_failure["DEATH_EVENT"].cast("string"),
+                DIABETES=heart_failure["DIABETES"].cast("string"),
+                AGE=heart_failure["AGE"].cast("float")
+            )
         )
-        heart_failure_df["DIABETES"] = heart_failure_df["DIABETES"].astype(str)
-        heart_failure_df["AGE"] = heart_failure_df["AGE"].astype(float)
 
         @render.plot
         def metric_plot():
             return (
                 ggplot(
-                    heart_failure_df,
-                    aes(x="DEATH_EVENT_STR", y=input.metric(), fill="DIABETES"),
+                    heart_failure_plot,
+                    aes(x="DEATH_EVENT", y=input.metric(), fill="DIABETES"),
                 )
                 + geom_boxplot()
                 + scale_fill_manual(values=["#29abe0", "#f57b3b"])
@@ -100,27 +106,31 @@ with ui.layout_columns():
 
             @render.data_frame
             def summary_table():
-                return comparison
+                return comparison.execute()
 
         with ui.card():
             ui.card_header("Key Values")
-
+            n_patients = int(heart_failure.count().execute())
+            median_age = round(float(heart_failure["AGE"].median().execute()))
+            survival_rate_str = (
+                f"{round((1 - heart_failure['DEATH_EVENT'].mean().execute()) * 100)}%"
+            )
             with ui.layout_columns():
                 ui.value_box(
                     title="Total Patients",
-                    value=len(heart_failure_df),
+                    value=n_patients,
                     showcase=fa.icon_svg("user", style="regular"),
                     theme="primary",
                 )
                 ui.value_box(
                     title="Median Age",
-                    value=round(heart_failure_df["AGE"].median()),
+                    value=median_age,
                     showcase=fa.icon_svg("calendar", style="regular"),
                     theme="info",
                 )
                 ui.value_box(
                     title="Survival Rate",
-                    value=f"{round((1 - heart_failure_df['DEATH_EVENT'].mean()) * 100)}%",
+                    value=survival_rate_str,
                     showcase=fa.icon_svg("heart", style="regular"),
                     theme="warning",
                 )

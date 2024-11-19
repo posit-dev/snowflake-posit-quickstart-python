@@ -17,7 +17,6 @@ We start by connecting to the `HEART_FAILURE` database in Snowflake, standardizi
 
 ```{python}
 import ibis
-import pandas as pd
 from plotnine import ggplot, aes, geom_boxplot, labs, theme
 from great_tables import GT
 

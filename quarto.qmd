@@ -28,6 +28,21 @@ con = ibis.snowflake.connect(
   connection_name="workbench"
 )
 
+```
+
+## Run SQL
+
+```{python}
+# Force Ibis to compile the table expression into SQL and run that SQL on Snowflake
+heart_failure_filtered.execute()
+
+# See the SQL code that Ibis generates
+ibis.to_sql(heart_failure_filtered)
+```
+
+## Write and clean data
+
+```{python}
 # Connect to the table and filter the data
 heart_failure = con.table("HEART_FAILURE")
 
@@ -48,16 +63,6 @@ heart_failure_filtered = (
         ["age", "diabetes", "serum_sodium", "serum_creatinine", "sex", "death_event"]
     )
 )
-```
-
-## Run SQL
-
-```{python}
-# Force Ibis to compile the table expression into SQL and run that SQL on Snowflake
-heart_failure_filtered.execute()
-
-# See the SQL code that Ibis generates
-ibis.to_sql(heart_failure_filtered)
 ```
 
 ## Age Distribution by Diabetes Status and Survival
@@ -129,3 +134,4 @@ comparison = (
     )
 )
 ```
+

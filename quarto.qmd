@@ -50,6 +50,16 @@ heart_failure_filtered = (
 )
 ```
 
+## Run SQL
+
+```{python}
+# Force Ibis to compile the table expression into SQL and run that SQL on Snowflake
+heart_failure_filtered.execute()
+
+# See the SQL code that Ibis generates
+ibis.to_sql(heart_failure_filtered)
+```
+
 ## Age Distribution by Diabetes Status and Survival
 
 The box plot below illustrates the distribution of ages among heart failure patients, grouped by diabetes status and survival outcome (0 = Survived, 1 = Died).
